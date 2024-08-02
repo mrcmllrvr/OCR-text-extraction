@@ -1,0 +1,9 @@
+<<<<<<< HEAD
+libgl1-mesa-glx
+tesseract-ocr
+tesseract-ocr-por
+=======
+libgl1-mesa-glx
+tesseract-ocr
+tesseract-ocr-por
+>>>>>>> 836a7be384c9d852f07fa0e7bbb117e3bf157409
