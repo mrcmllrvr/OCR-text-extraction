@@ -155,7 +155,7 @@ def main():
                 else:
                     raise ValueError("Unsupported file format")
 
-                processed_content = extract_text_from_img(images_list)
+                processed_content = extract_raw_text_from_img_openai(images_list)
                 for idx, (processed_image, raw_text) in enumerate(processed_content):
                     cols = st.columns(2)
                     with cols[0]:
@@ -213,3 +213,4 @@ def main():
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     main()
+
