@@ -16,7 +16,7 @@ import numpy as np
 
 load_dotenv()
 
-st.set_page_config(page_title="PDF and Image Extraction", page_icon="📜", layout="wide")
+st.set_page_config(page_title="PDF and Image Extraction", page_icon=":bird:", layout="wide")
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -135,7 +135,7 @@ def extract_structured_data(content: str):
 
 # Streamlit app
 def main():
-    st.header("PDF and Image Extraction :bird:")
+    st.header("📜 Land Titles Data Extraction")
 
     uploaded_files = st.file_uploader("Upload file(s):", accept_multiple_files=True, type=["pdf", "jpg", "jpeg"])
 
@@ -155,22 +155,32 @@ def main():
                 else:
                     raise ValueError("Unsupported file format")
 
-                processed_content = extract_raw_text_from_img_openai(images_list)
-                for idx, (processed_image, raw_text) in enumerate(processed_content):
-                    cols = st.columns(2)
+                raw_texts = extract_raw_text_from_img_openai(images_list)
+                for idx, (encoded_image, raw_text) in enumerate(raw_texts):
+                    cols = st.columns(3)
                     with cols[0]:
-                        st.image(processed_image, caption=f'Processed Image - {file.name}', use_column_width=True)
-                    
+                        st.image(f"data:image/jpeg;base64,{encoded_image}", caption=f'Processed Image - {file.name}', use_column_width=True)
+
                     with cols[1]:
-                        st.subheader("Extracted Information")
+                        st.subheader("Raw Extracted Information")
+                        st.text_area("Raw Text", value=raw_text, height=200, key=f'raw_text_{file.name}_{idx}')
+
+                    with cols[2]:
+                        st.subheader("Structured Information")
                         json_key = f'{file.name}_{idx}_json'
+                        initial_value = """
+                            Transfer Certificate of Title Number: 
+                            Landowner:
+                            Location:
+                            Land Description: 
+                            Land Area:
+                        """
 
                         if json_key not in st.session_state:
-                            extracted_json = extract_structured_data(raw_text, ["title number", "landowner", "location", "land description", "land area"])
+                            extracted_json = extract_structured_data(raw_text)
                             st.session_state[json_key] = extracted_json
 
-                        json_input = st.text_area("Edit the extracted information: ", value=st.session_state[json_key], key=json_key, height=300)
-                        st.session_state[json_key] = json_input
+                        json_input = st.text_area("Edit the extracted information: ", value=st.session_state.get(json_key, initial_value), key=json_key, height=300)
 
             except Exception as e:
                 st.error(f"Error processing file {file.name}: {e}")
@@ -178,20 +188,16 @@ def main():
         if st.button("Extract to Excel"):
             for key in st.session_state:
                 if key.endswith("_json"):
-                    try:
-                        extracted_data = st.session_state[key].split('\n')
-                        doc_info = {
-                            "Transfer Certificate of Title Number": extracted_data[0].split(":")[1].strip() if len(extracted_data) > 0 else "Not available",
-                            "Landowner": extracted_data[1].split(":")[1].strip() if len(extracted_data) > 1 else "Not available",
-                            "Location": extracted_data[2].split(":")[1].strip() if len(extracted_data) > 2 else "Not available",
-                            "Land Description": extracted_data[3].split(":")[1].strip() if len(extracted_data) > 3 else "Not available",
-                            "Land Area": extracted_data[4].split(":")[1].strip() if len(extracted_data) > 4 else "Not available",
-                            "File Name": key.split('_')[0],
-                            "Page": key.split('_')[1]
-                        }
-                        results.append(doc_info)
-                    except IndexError as e:
-                        st.error(f"Error extracting information from key {key}: {e}")
+                    extracted_data = st.session_state[key].strip().split('\n')
+                    data_dict = {
+                        "Transfer Certificate of Title Number": extracted_data[0].split(":")[1].strip() if len(extracted_data) > 0 else "Not available",
+                        "Landowner": extracted_data[1].split(":")[1].strip() if len(extracted_data) > 1 else "Not available",
+                        "Location": extracted_data[2].split(":")[1].strip() if len(extracted_data) > 2 else "Not available",
+                        "Land Description": extracted_data[3].split(":")[1].strip() if len(extracted_data) > 3 else "Not available",
+                        "Land Area": extracted_data[4].split(":")[1].strip() if len(extracted_data) > 4 else "Not available",
+                        "File Name": key.rsplit('_', 2)[0],
+                    }
+                    results.append(data_dict)
 
             if results:
                 df = pd.DataFrame(results)
@@ -200,9 +206,9 @@ def main():
 
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    df.to_excel(writer, index=False, columns=["Transfer Certificate of Title Number", "Landowner", "Location", "Land Description", "Land Area", "File Name", "Page"])
+                    df.to_excel(writer, index=False, columns=["Transfer Certificate of Title Number", "Landowner", "Location", "Land Description", "Land Area"])
                 output.seek(0)
-                
+
                 st.download_button(
                     label="Download extracted data",
                     data=output,
@@ -213,4 +219,3 @@ def main():
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     main()
-
