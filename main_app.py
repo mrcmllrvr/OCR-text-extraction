@@ -16,7 +16,7 @@ import numpy as np
 
 load_dotenv()
 
-st.set_page_config(page_title="Land Titles Data Extraction", layout="wide")
+st.set_page_config(page_title="Land Titles Data Extraction", page_icon="📜", layout="wide")
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
